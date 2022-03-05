@@ -1,47 +1,86 @@
-fun main() {
-    val primes = PrimesIterator(10)
-    while (primes.hasNext()) println(primes.next())
+
+Main().main()
+class Main(): PrimesUtils {
+
+    public interface Settings {
+        public enum class Mode( var ceil: Int ) { AMOUNT( 10 ), TO( 20 ) }
+        public enum class LookAhead( var value: Int ) { NONE( 1 ), NORMAL( 100 ), LARGE( 1000 ) }
+    }
+
+    fun main() {
+        val primes = PrimesUtils.PrimesIterator(Settings.Mode.TO)
+        val found: MutableList<Int> = mutableListOf<Int>()
+        while ( primes.hasNext() ) found.add( primes.next() )
+
+        found.forEach { println( it ) }
+    }
 }
-main()
 
 
-class PrimesIterator(private val ceil: Int, private var calcMode: Mode = Mode.AMOUNT) : Iterator<Int> {
-    public enum class Mode { AMOUNT, TO }
-    private var counter: Int = 0
-    private val foundPrimes: MutableList<Int> = mutableListOf<Int>()
+public interface PrimesUtils {
+    public fun isPrime( number: Int ): Boolean {
 
-    fun changeMode(newMode: Mode) { calcMode = newMode }
+        for ( it in 2 until number )
+            if ( number % it == 0 ) return false
 
-    override fun hasNext(): Boolean = if ( calcMode == Mode.AMOUNT ) foundPrimes.size < ceil else (counter <= ceil && next() < ceil)
-
-
-
-    override fun next(): Int {
-        check( hasNext() )
-
-        val foundPrime: Int? = firstToOrNull(ceil)
-        if (foundPrime == null) return ceil
-        
-        foundPrimes.add(foundPrime)
-        return foundPrime
+        return true
     }
 
+    public fun firstFromToOrNull( floor: Int, ceil: Int ): Int? {
 
-    private fun firstToOrNull(ceil: Int): Int? {
-        for (num in counter until ceil) {
-            counter++
-            if (isPrime(num)) return num
+        for ( num: Int in floor until ceil ) {
+            println("$num is prime: ${isPrime(num)}")
+            if ( isPrime(num) ) return num
         }
+
         return null
+
     }
-    private fun isPrime(number: Int): Boolean {
-        for (it in 2 until number)
-            if (number % it == 0) return true
 
-        return false
+    class PrimesIterator(private var mode: Main.Settings.Mode = Main.Settings.Mode.AMOUNT, private var depth: Int = Main.Settings.LookAhead.LARGE.value) : Iterator<Int>, Main.Settings, PrimesUtils {
+        init { if ( mode.ceil < 0 ) mode.ceil *= -1 }
+
+
+
+        public var counter: Int = 2
+        public val foundPrimes: MutableList<Int> = mutableListOf<Int>()
+
+        public fun changeLookAhead( newValue: Int ) { this.depth = newValue }
+        public fun changeMode( newMode: Main.Settings.Mode ) { mode = newMode }
+
+
+        public val allFound: List<Int>
+            get() = foundPrimes.toList()
+
+
+        override fun hasNext(): Boolean = if ( mode.ceil > 1 ) { if ( mode == Main.Settings.Mode.AMOUNT ) foundPrimes.size < mode.ceil else counter <= mode.ceil } else false
+
+        override fun next(): Int {
+            check( hasNext() )
+            var result: Boolean = if ( mode.ceil > 1 ) { if ( mode == Main.Settings.Mode.AMOUNT ) foundPrimes.size < mode.ceil else counter <= mode.ceil } else false
+            println("$result | mode.ceil > 1 = ${mode.ceil} | mode == amount = ${mode == Main.Settings.Mode.AMOUNT} | size < ceil ${foundPrimes.size < mode.ceil} | cntr <= ceil ${counter <= mode.ceil}")
+
+            val found = nextPrime()
+            println(found)
+            if( found != null ) foundPrimes.add( found )
+            return foundPrimes.last()
+        }
+
+        private fun nextPrime( max: Int = depth ): Int? {
+            println("nextprime $max | cntr $counter | ${mode.name} ${mode.ceil}")
+            if ( mode == Main.Settings.Mode.TO && counter > mode.ceil ) {
+                return firstFromToOrNull( counter, mode.ceil )!!
+            }
+
+            val found: Int? = firstFromToOrNull( counter, max )
+
+            // EDIT counter += found. Skips numbers.
+            return if ( found != null ) { counter += found-1; found } else nextPrime(max * 2)
+        }
+
     }
-    private fun preComputeTo(ceil: Int): List<Int> = (2..ceil).filter { num -> (2 until num).none { num % it == 0 } }
 
-
-
+    //UNUSED - left in cuz its cool
+    fun allTo( ceil: Int ): List<Int> = allFromTo(2, ceil)
+    fun allFromTo( floor: Int, ceil: Int ): List<Int> = (floor..ceil).filter { num -> (2 until num).none { num % it == 0 } }
 }
