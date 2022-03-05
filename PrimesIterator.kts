@@ -8,7 +8,7 @@ class Main(): PrimesUtils {
     }
 
     fun main() {
-        val primes = PrimesUtils.PrimesIterator(Settings.Mode.TO)
+        val primes = PrimesUtils.PrimesIterator(Settings.Mode.AMOUNT)
         val found: MutableList<Int> = mutableListOf<Int>()
         while ( primes.hasNext() ) found.add( primes.next() )
 
@@ -29,7 +29,6 @@ public interface PrimesUtils {
     public fun firstFromToOrNull( floor: Int, ceil: Int ): Int? {
 
         for ( num: Int in floor until ceil ) {
-            println("$num is prime: ${isPrime(num)}")
             if ( isPrime(num) ) return num
         }
 
@@ -53,29 +52,26 @@ public interface PrimesUtils {
             get() = foundPrimes.toList()
 
 
-        override fun hasNext(): Boolean = if ( mode.ceil > 1 ) { if ( mode == Main.Settings.Mode.AMOUNT ) foundPrimes.size < mode.ceil else counter <= mode.ceil } else false
+        override fun hasNext(): Boolean = if ( mode.ceil > 1 ) { if ( mode == Main.Settings.Mode.AMOUNT ) foundPrimes.size < mode.ceil else { val tmp = counter
+            val result = nextPrime()!! <= mode.ceil
+            counter = tmp
+            result
+        } } else false
 
         override fun next(): Int {
             check( hasNext() )
-            var result: Boolean = if ( mode.ceil > 1 ) { if ( mode == Main.Settings.Mode.AMOUNT ) foundPrimes.size < mode.ceil else counter <= mode.ceil } else false
-            println("$result | mode.ceil > 1 = ${mode.ceil} | mode == amount = ${mode == Main.Settings.Mode.AMOUNT} | size < ceil ${foundPrimes.size < mode.ceil} | cntr <= ceil ${counter <= mode.ceil}")
 
-            val found = nextPrime()
-            println(found)
-            if( found != null ) foundPrimes.add( found )
-            return foundPrimes.last()
+            return nextPrime()!!
         }
 
         private fun nextPrime( max: Int = depth ): Int? {
-            println("nextprime $max | cntr $counter | ${mode.name} ${mode.ceil}")
             if ( mode == Main.Settings.Mode.TO && counter > mode.ceil ) {
                 return firstFromToOrNull( counter, mode.ceil )!!
             }
 
             val found: Int? = firstFromToOrNull( counter, max )
 
-            // EDIT counter += found. Skips numbers.
-            return if ( found != null ) { counter += found-1; found } else nextPrime(max * 2)
+            return if ( found != null ) { counter = found+1; foundPrimes.add(found); found } else nextPrime(max * 2)
         }
 
     }
